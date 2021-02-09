@@ -1,10 +1,11 @@
 options(contrasts=c("contr.sum","contr.poly"))
-setwd('E:\\Documents\\Projects\\React4\\Scripts')
+setwd('/Users/yaz/Desktop/NBA2021-master')
 
 library(R.matlab)
 library(ggplot2)
 library(ggpubr)
 library(ggcorrplot)
+library(lme4)
 
 ### Load matlab variables and subject data ###
 mat <- readMat("React4Variables.mat")
@@ -18,6 +19,10 @@ subjectMR <- mat[["subjectMR"]]
 subjectRMV <- mat[["subjectRMV"]]
 subjectCRE <- mat[["subjectCRE"]]
 
+#mixed Linear regression between age and five SOAs and RT and MR and RMV and CRE
+
+lm1<-lmer(RT~Age*Vestibular.MR+Mean.RMV+(1|subjects),data = data)
+
 ## Figure 2. RMV of Race Model Inequality per SOA
 grandCDFs <- mat[["grandCDFs"]]
 grandRaceModel <- mat[["grandRaceModel"]]
@@ -27,7 +32,6 @@ visCDF <- as.matrix(grandCDFs[1,7,])
 
 # Import CDF data into a dataframe
 cdfData <- data.frame("timecourse" = t(mat[["timecourse"]]), "vesCDF" = vesCDF, "ves50CDF" = as.matrix(c(rep(0,500), vesCDF[1:29501,1])), "ves100CDF" = as.matrix(c(rep(0,1000), vesCDF[1:29001,1])), "visCDF" = visCDF, "vis50CDF" = as.matrix(c(rep(0,500), visCDF[1:29501,1])), "vis100CDF" = as.matrix(c(rep(0,1000), visCDF[1:29001,1])), "soa1CDF" = as.matrix(grandCDFs[1,2,]), "soa2CDF" = as.matrix(grandCDFs[1,3,]), "soa3CDF" = as.matrix(grandCDFs[1,4,]), "soa4CDF" = as.matrix(grandCDFs[1,5,]), "soa5CDF" = as.matrix(grandCDFs[1,6,]), "race1CDF" = as.matrix(grandRaceModel[1,1,]), "race2CDF" = as.matrix(grandRaceModel[1,2,]), "race3CDF" = as.matrix(grandRaceModel[1,3,]), "race4CDF" = as.matrix(grandRaceModel[1,4,]), "race5CDF" = as.matrix(grandRaceModel[1,5,]))
-
 ## Figure 2a: -100 ms SOA
 cdfPlot1 <- ggplot(cdfData, aes(x=timecourse)) +
   geom_line(aes(y=vesCDF,group="A",colour="A")) +
@@ -137,16 +141,16 @@ overallRT <- ggplot(overallData,aes(x=overallSoa,y=overallMeanRT,fill=overallSoa
   geom_errorbar(aes(ymin=overallMeanMRscaled-overallSeMRscaled, ymax=overallMeanMRscaled+overallSeMRscaled), width=0.15) +
   geom_errorbar(aes(ymin=overallMeanRT-overallSeRT, ymax=overallMeanRT+overallSeRT), width=0.15) +
   geom_col(colour="black",aes(y=overallMeanMRscaled)) +
-  geom_point(aes(shape=overallCondition),size=3) + 
+  geom_point(aes(shape=overallCondition),size=4) + 
   labs(x = "SOA (ms)", y = "Reaction Time (ms)") + 
-  scale_shape_manual(name="Condition",labels=c("Vestibular Cue", "Combined (SOA)", "Visual Cue"),values=c(23,21,22)) +
-  scale_fill_manual(name="SOA (ms)",values=c("black","grey15","grey30","grey50","grey70","grey85","white")) +
+  scale_shape_manual(name="Condition",labels=c("Vestibular Cue", "Combined (SOA)", "Visual Cue"),values=c(24,21,22)) +
+  scale_fill_manual(name="SOA (ms)",values=c("#F8766D","#F0F4C3", "#C5E1A5", "#9CCC65", "#689F38", "#33691E","#00BFC4")) +
   scale_y_continuous(breaks = seq(600, 1200, by = 100), labels = c(600,"",800,"",1000,"",1200), limits = c(0,1200), 
                      sec.axis=sec_axis(~ ., breaks = seq(0, 600, by = 120), labels=c(0,10,20,30,40,50), name = "Miss Rate (%)")) +
-  guides(fill=guide_legend(order=2,override.aes=list(shape=(c(23,21,21,21,21,21,22)), col=(c("black","grey15","grey30","grey50","grey70","grey85","white")))), shape=guide_legend(order=1)) +
+  guides(fill=guide_legend(order=2,override.aes=list(shape=(c(24,21,21,21,21,21,22)), col=(c("#F8766D","#F0F4C3", "#C5E1A5", "#9CCC65", "#689F38", "#33691E","#00BFC4")))), shape=guide_legend(order=1)) +
   theme_classic(base_size = 18) +
-  theme(legend.direction = "horizontal", legend.position=c(0.5,0.82), legend.box="vertical",
-        legend.key = element_rect(color="black",size=0.3,linetype="dotted"))
+  theme(legend.direction = "vertical", legend.position=c(0.5,0.82), legend.box="horizontal",
+        legend.key = element_rect(color="black",size=0.3,linetype="dotted"), text = element_text(size=32),axis.text = element_text(colour = "black"),legend.text=element_text(size=22, colour= "black"))
 print(overallRT)
 #ggsave(file="overallRT.eps")
 #ggsave(file="overallRT.png")
@@ -168,14 +172,14 @@ summary(lmRT) # Linear regression for RT
 
 ageRT <- ggplot(meltRT, aes(x=age, y=rt, fill=soa)) +
   geom_smooth(aes(colour=soa),method=lm,se=0) +
-  geom_point(colour="black",aes(shape=cond,fill=soa),size=2) +
-  scale_colour_manual(values=c("black","grey15","grey30","grey50","grey70","grey85","white"),guide=FALSE) +
-  scale_shape_manual(name="Condition",labels=c("Vestibular Cue", "Combined (SOA)", "Visual Cue"),values=c(23,21,22)) +
-  scale_fill_manual(name="SOA (ms)",labels=c("-Inf","-100","-50","0","50","100","Inf"),values=c("black","grey15","grey30","grey50","grey70","grey85","white")) +
-  guides(fill=guide_legend(override.aes=list(shape=(c(23,21,21,21,21,21,22))))) +
+  geom_point(colour="black",aes(shape=cond,fill=soa),size=4) +
+  scale_colour_manual(values=c("#F8766D","#F0F4C3", "#C5E1A5", "#9CCC65", "#689F38", "#33691E","#00BFC4"),guide=FALSE) +
+  scale_shape_manual(name="Condition",labels=c("Vestibular Cue", "Combined (SOA)", "Visual Cue"),values=c(24,21,22)) +
+  scale_fill_manual(name="SOA (ms)",labels=c("-Inf","-100","-50","0","50","100","Inf"),values=c("#F8766D","#F0F4C3", "#C5E1A5", "#9CCC65", "#689F38", "#33691E","#00BFC4")) +
+  guides(fill=guide_legend(override.aes=list(shape=(c(24,21,21,21,21,21,22))))) +
   labs(x = "Age", y = "Reaction Time (ms)", tag="A") +
-  theme_gray(base_size=17) +
-  theme(legend.direction = "horizontal", legend.position=c(0.5,0.8), legend.box="vertical", legend.background = element_rect(fill='#EBEBEB'), panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+  theme_classic2(base_size=17) +
+  theme(legend.direction = "vertical", legend.position=c(0.5,0.85), legend.box="horizontal", text = element_text(size=32),  legend.background = element_rect(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),  axis.line = element_line(colour = "grey30"), axis.text = element_text(colour = "black"), legend.text=element_text(size=22, colour= "black"))
 print(ageRT)
 #ggsave(file="ageRT.eps")
 
@@ -194,14 +198,14 @@ summary(lmMR) # linear regression for for MR
 
 ageMR <- ggplot(meltMR, aes(x=age, y=mr, fill=soa)) +
   geom_smooth(aes(colour=soa),method=lm,se=0) +
-  geom_point(colour="black",aes(shape=cond,fill=soa),size=2) +
-  scale_colour_manual(values=c("black","grey15","grey30","grey50","grey70","grey85","white"),guide=FALSE) +
-  scale_shape_manual(name="Condition",labels=c("Vestibular Cue", "Combined (SOA)", "Visual Cue"),values=c(23,21,22)) +
-  scale_fill_manual(name="SOA (ms)",labels=c("-Inf","-100","-50","0","50","100","Inf"),values=c("black","grey15","grey30","grey50","grey70","grey85","white")) +
-  guides(fill=guide_legend(override.aes=list(shape=(c(23,21,21,21,21,21,22))))) +
+  geom_point(colour="black",aes(shape=cond,fill=soa),size=4) +
+  scale_colour_manual(values=c("#F8766D","#F0F4C3", "#C5E1A5", "#9CCC65", "#689F38", "#33691E","#00BFC4"),guide=FALSE) +
+  scale_shape_manual(name="Condition",labels=c("Vestibular Cue", "Combined (SOA)", "Visual Cue"),values=c(24,21,22)) +
+  scale_fill_manual(name="SOA (ms)",labels=c("-Inf","-100","-50","0","50","100","Inf"),values=c("#F8766D","#F0F4C3", "#C5E1A5", "#9CCC65", "#689F38", "#33691E","#00BFC4")) +
+  guides(fill=guide_legend(override.aes=list(shape=(c(24,21,21,21,21,21,22))))) +
   labs(x = "Age", y = "Miss Rate (%)", tag="B") +
-  theme_gray(base_size=18) +
-  theme(legend.position="none", panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+  theme_classic(base_size=17) +
+  theme(legend.position="none", panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"), text = element_text(size=32), axis.text = element_text(colour = "black"))
 print(ageMR)
 #ggsave(file="ageMR.eps")
 
@@ -220,13 +224,13 @@ summary(lmRMV2) # linear regression for RMV and just age
 
 ageRMV <- ggplot(meltRMV, aes(x=age, y=rmv,fill=soa)) +
   geom_smooth(aes(colour=soa),method=lm,se=0) +
-  geom_point(colour="black",aes(shape=cond,fill=soa),size=2) +
-  scale_colour_manual(values=c("grey15","grey30","grey50","grey70","grey85")) +
+  geom_point(colour="black",aes(shape=cond,fill=soa),size=4) +
+  scale_colour_manual(values=c("#F0F4C3", "#C5E1A5", "#9CCC65", "#689F38", "#33691E")) +
   scale_shape_manual(values=21) +
-  scale_fill_manual(values=c("grey15","grey30","grey50","grey70","grey85")) +
+  scale_fill_manual(values=c("#F0F4C3", "#C5E1A5", "#9CCC65", "#689F38", "#33691E")) +
   labs(x = "Age", y = "Race Model Violation (ms)", tag="C") +
-  theme_gray(base_size=18) +
-  theme(legend.position="none",panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+  theme_classic(base_size=17) +
+  theme(legend.position="none",panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"), text = element_text(size=32), axis.text = element_text(colour = "black"))
 print(ageRMV)
 #ggsave(file="ageRMV.eps")
 
@@ -244,12 +248,12 @@ summary(lmCRE) # linear regression for CRE
 ageCRE <- ggplot(meltCRE, aes(x=age, y=cre, fill=soa)) +
   geom_smooth(aes(colour=soa),method=lm,se=0) +
   geom_point(colour="black",aes(shape=cond,fill=soa),size=2) +
-  scale_colour_manual(values=c("grey15","grey30","grey50","grey70","grey85")) +
+  scale_colour_manual(values=c("#F0F4C3", "#C5E1A5", "#9CCC65", "#689F38", "#33691E")) +
   scale_shape_manual(values=21) +
-  scale_fill_manual(values=c("grey15","grey30","grey50","grey70","grey85")) +
+  scale_fill_manual(values=c("#F0F4C3", "#C5E1A5", "#9CCC65", "#689F38", "#33691E")) +
   labs(x = "Age", y = "Crossmodal Response Enhacement (%)", tag="D") +
-  theme_gray(base_size=15) +
-  theme(legend.position="none",panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+  theme_classic(base_size=15) +
+  theme(legend.position="none",panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "grey30"))
 print(ageCRE)
 #ggsave(file="ageCRE.eps")
 
@@ -283,4 +287,10 @@ yaAbove50se <- apply(subjects[subjects$age < 30 & subjectMRves > 0.5,10:20],2,sd
 yaBelow50 <- colMeans(subjects[subjects$age < 30 & subjectMRves <= 0.5,10:20])
 yaBelow50se <- apply(subjects[subjects$age < 30 & subjectMRves <= 0.5,10:20],2,sd)/sqrt(25)
 
+
+write.csv(meltRT, file = "RT.csv")
+write.csv(subjectData, file = "subjectData.csv")
+write.csv(meltMR, file = "MR.csv")
+write.csv(meltRMV, file = "RMV.csv")
+write.csv(meltCRE, file = "CRE.csv")
 
