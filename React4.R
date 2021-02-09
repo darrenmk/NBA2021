@@ -1,5 +1,4 @@
 options(contrasts=c("contr.sum","contr.poly"))
-setwd('/Users/yaz/Desktop/NBA2021-master')
 
 library(R.matlab)
 library(ggplot2)
