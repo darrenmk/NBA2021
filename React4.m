@@ -5,37 +5,27 @@
 
 clearvars
 restoredefaultpath
-addpath(genpath('E:\Documents\Projects\React4\'));
+addpath(genpath('D:\Data\Documents\Scripts\NBA2021'));
 
 T = readtable('React4Subjects.csv'); % consider excluding sona subjects
 keepSubject = ~(logical(T.below90)==1 | logical(T.poorData)==1); % only include subjects with over 90% response rate and not a fast guesser
 S = T(keepSubject,:);
-
-%% Age groups
-%logical indices for age groups (change later to have an approximately equal distribution)
-g1 = S.age < 20;
-g2 = S.age >= 20 & S.age < 40;
-g3 = S.age >= 40 & S.age < 55;
-g4 = S.age >= 55;
-groups = [g1,g2,g3,g4];
 
 oldCodes = [100 -10 -7 -4 -1 2 200]; % codes in rawData
 newCodes = [-Inf -100 -50 0 50 100 Inf]; % new codes in react4Data
 
 %% DATA READER
 clearvars react4*
+data_append = [];
 for si = 1:size(S,1)
     
-    clearvars sid group block cond rts
-    gi = find(groups(si,:));
-    
+    file_append = [];
     for bi = 1:2
-        clearvars soa
         
         file = ['react' num2str(S.sID(si),'%03d') '_' num2str(bi) '_0.MLOG'];
         raw = dlmread(file);
         
-        %logical indexing
+        % remove trials that were an error
         bad1 = raw(:,3) == -2; % index row with response error = -2
     	if size(raw,2)>4
             bad2 = raw(:,5) ~= 0; % index rows longer than 4
@@ -45,129 +35,67 @@ for si = 1:size(S,1)
         end
         raw(omitted,:) = [];
         
-        vesIdx = raw(:,4)==100; % vestibular only index
-        visIdx = raw(:,4)==200; % visual only index
-        soaIdx = raw(:,4)<99; % soa index
+        % adjust the SOA
+        soa = (raw(:,4)+4)*(1000/60)'; % turns the frame offset into an SOA in ms. Frame offset of -4 is when cues are sync. Add 4 to get 0 offset at sync, then scale by frame rate (60Hz) to get SOA in ms 
+        soa(raw(:,4)==100,1) = -Inf; % set vestibular only to SOA of -Inf
+        soa(raw(:,4)==200,1) = Inf; % set visual only to SOA of Inf
         
-        soa(soaIdx,1) = (raw(soaIdx,4)+4)*(1000/60)'; % adjust for frame offset and convert to SOA
-        soa(vesIdx,1) = -Inf;
-        soa(visIdx,1) = Inf;
+        % adjust the RT
+        adjIdx = ismember(raw(:,4),[-7, -10]); % this gets the index of vestibular first SOAs
+        adjRTs = raw(:,1)-soa(:,1); % the RT timer started at the visual cue, so for vestibular first SOAs we need to adjust the RT
+        rts = raw(:,1); % first set the RTs to the raw values
+        rts(adjIdx) = adjRTs(adjIdx); % then adjust vestiublar first RTs to account for frame offset
         
-        adjIdx = ismember(raw(:,4),[-7, -10]);
-        rawIdx = ~adjIdx;
+        new = zeros(size(raw,1),4);
+        new(:,1) = S.sID(si);
+        new(:,2) = bi;
+        new(:,3) = soa;
+        new(:,4) = rts;
         
-        adjRTs = raw(:,1)-soa(:,1);
-        
-        rts = raw(:,1);
-        rts(adjIdx) = adjRTs(adjIdx);
-        
-        s(1:105,bi) = NaN;
-        s(1:length(raw),bi) = si;
-        
-        g(1:105,bi) = NaN;
-        g(1:length(raw),bi) = gi;
-        
-        b(1:105,bi) = NaN;
-        b(1:length(raw),bi) = bi;
-        
-        c(1:105,bi) = NaN;
-        c(1:length(raw),bi) = soa;
-        
-        r(1:105,bi) = NaN;
-        r(1:length(raw),bi) = rts;
+        file_append = vertcat(file_append, new);
     end
     
-    %% Make output file!
-    missingTrials = 210-sum(sum(~isnan(r)));
-    subjectRows = (210*si-209: 210*si-missingTrials)';
-    
-    % make by group as well !
-    myData(subjectRows,1) = s(~isnan(s)); % subject id
-    myData(subjectRows,2) = g(~isnan(g)); % group number
-    myData(subjectRows,3) = b(~isnan(b)); % block number
-    myData(subjectRows,4) = c(~isnan(c)); % condition
-    myData(subjectRows,5) = r(~isnan(r)); % RT
-    
+    data_append = vertcat(data_append, file_append);
 end
 
-r4Data = myData; % make sure to evaluate this first
-r4Data(~any(r4Data,2),:) = []; % do this to get rid of empty rows
+r4Data = data_append;
 
-%% Outlier removal (commented out because there are no outliers in the data)
-%{
-for ci = 1:7
+%% Subject Mean RTs
+clearvars subject*
+for ci = 1:7 % condition index
     
-    idx = r4Data(:,3)==newCodes(ci);
-    tempArray = r4Data(idx,4); % these are the RTs
-    tempArray2 = log(tempArray); % (natural) log transformed RTs to make data normally distributed
+    grandAll{1,ci} = r4Data(r4Data(:,3) == newCodes(ci), 4);
+    grandRT(1,ci) = mean(r4Data(r4Data(:,3) == newCodes(ci), 4));
     
-    % OUTLIER REMOVAL PER CONDITION
-    lowOutliers = tempArray2 < quantile(tempArray2,0.25) - iqr(tempArray2)*3; % index low outliers
-    highOutliers = tempArray2 > quantile(tempArray2,0.75) + iqr(tempArray2)*3; % index high outliers
-    allOutliers = highOutliers | lowOutliers;
-    
-    idx(idx) = allOutliers;
-    
-    idx2(:,ci) = idx;
-    nOutliers(ci) = sum(allOutliers);
-end
-
-outliers = logical(sum(idx2,2)); % collapse into a single logical vector
-r4Data(outliers,:) = []; % be careful about running this in isolation
-%}
-
-%% Subject means
-for si = 1:size(S,1)
-
-    subjectData = r4Data(r4Data(:,1)==si,:);
-
-    for ci = 1:7 % subject condition index
+    for si = 1:size(S,1) % subject index 
         
-        conditionIndex = subjectData(:,4)==newCodes(ci);
-        conditionRTs = subjectData(conditionIndex,5);
-        subjectAll{si,ci} = conditionRTs;
-        subjectRT(si,ci) = mean(conditionRTs);
+        subjectData = r4Data(r4Data(:,1)==S.sID(si),:);
+
+        tempSubjectRTs = subjectData(subjectData(:,3)==newCodes(ci),4);
+        subjectAll{si,ci} = tempSubjectRTs;
+        subjectRT(si,ci) = mean(tempSubjectRTs);
         
-        for bi = 1:2 % subject condition block index
+        for bi = 1:2 % block index
             
-            blockData = r4Data(r4Data(:,1)==si & r4Data(:,3)==bi,:);
-            blockIndex = blockData(:,4)==newCodes(ci);
-            blockRTs = blockData(blockIndex,5);
+            blockData = r4Data(r4Data(:,1)==S.sID(si) & r4Data(:,2)==bi,:);
             
-            subjectBlockAll{si,bi,ci} = blockRTs;
-            subjectBlockRT(si,bi,ci) = mean(blockRTs);
+            tempBlockRTs = blockData(blockData(:,3)==newCodes(ci),4);
+            subjectBlockAll{si,bi,ci} = tempBlockRTs;
+            subjectBlockRT(si,bi,ci) = mean(tempBlockRTs);
         end
     end
 end
 
-% Run these here to determine bad subjects
+% determine bad subjects
 % below90p = S.sID(sum(subjectTrials(:,2:end),2) < (30*6)*(27/30));
 % fastGuesser = S.sID(subjectRT(:,1) < subjectRT(:,2));
 
-%% Grand and group means
-for ci = 1:7
-    
-    conditionData = r4Data(r4Data(:,4)==newCodes(ci),:);
-    
-    grandAll{1,ci} = conditionData(:,5);
-    grandRT(1,ci) = mean(conditionData(:,5));
-    grandSe(1,ci) = std(conditionData(:,5))/sqrt(size(S,1));
-    
-    for gi = 1:size(groups,2)
-        
-        groupData = conditionData(conditionData(:,2)==gi,:);
-        
-        groupAll{gi,ci} = groupData(:,5);
-        groupRT(gi,ci) = mean(groupData(:,5));
-        groupSe(gi,ci) = std(groupData(:,5))/sqrt(sum(groups(:,gi)));
-    end
-end
-clearvars -except S r4Data subject* grand* group* newCodes
-
-%% Convert response times to CDFs to calculate race model inequality
+%% Race Model Inequality
+% Convert response times to CDFs
 timecourse = 0:0.1:3000;
 
-for ci = 1:7 % convert grandAll to grandCDF
+%% Create CDFs from overall distribution
+for ci = 1:7
     nInf = size(S,1)*30 - length(grandAll{ci}); % determine number of missing trials
     grandInf{1,ci} = vertcat(grandAll{ci},inf(nInf,1)); % set missing trials to infinity to correct CDF
     grandMR(ci) = (sum(~isfinite(grandInf{1,ci})))/(size(S,1)*30);
@@ -194,17 +122,6 @@ for ci = 1:7 % convert grandAll to grandCDF
         subjectCDFs(si,ci,:) = interp1(tUnique(1:end-1), F(tUniqueIdx(1:end-1)), timecourse, 'previous');
         
     end
-    
-    for gi = 1:size(groups,2) % convert groupAll to groupCDF
-        nInf = sum(groups(:,gi))*30 - length(groupAll{gi,ci});
-        groupInf{gi,ci} = vertcat(groupAll{gi,ci},inf(nInf,1));
-        groupMR(gi,ci) = (sum(~isfinite(groupInf{gi,ci})))/(sum(groups(:,gi))*30);
-        
-        [F,t] = ecdf(groupInf{gi,ci});
-        [tUnique, tUniqueIdx] = unique(t); 
-        groupCDFs(gi,ci,:) = interp1(tUnique(1:end-1), F(tUniqueIdx(1:end-1)), timecourse, 'previous');
-        
-    end
 end
 
 grandCDFs(isnan(grandCDFs(1,:,1:10000))) = 0; % set starting values to zero
@@ -213,85 +130,82 @@ grandCDFvis = grandCDFs(1,7,:);
 subjectCDFs(isnan(subjectCDFs(:,:,1:10000))) = 0; % set starting values to zero
 subjectCDFves = subjectCDFs(:,1,:);
 subjectCDFvis = subjectCDFs(:,7,:);
-groupCDFs(isnan(groupCDFs(:,:,1:10000))) = 0; % set starting values to zero
-groupCDFves = groupCDFs(:,1,:);
-groupCDFvis = groupCDFs(:,7,:);
 
 soas = [-100 -50 0 50 100];
 
-for soai = 1:5 % calculate upper bound of race model
+%% Calculate the Race Model Inequality, Race Model Violation Area, and scalar RMV score
+for soai = 1:5 % calculate upper bound of race model for each SOA
 
     mySoa = soas(soai);
     colShift = abs(fix(mySoa*10));
     
     if mySoa < 0 % vestibular first
-        grandRaceModel(1,soai,:) = grandCDFves(1,:) + [zeros(1,colShift) grandCDFvis(1,1:end-colShift)];
+        grandRaceModel(1,soai,:) = grandCDFves(1,:) + [zeros(1,colShift) grandCDFvis(1,1:end-colShift)]; % shift visual CDF based on vestibular-first SOA
     elseif mySoa == 0 % sync
-        grandRaceModel(1,soai,:) = grandCDFves(1,:) + grandCDFvis(1,:);
+        grandRaceModel(1,soai,:) = grandCDFves(1,:) + grandCDFvis(1,:); % do not shift CDFs
     elseif mySoa > 0 % visual first
-        grandRaceModel(1,soai,:) = grandCDFvis(1,:) + [zeros(1,colShift) grandCDFves(1,1:end-colShift)];
+        grandRaceModel(1,soai,:) = grandCDFvis(1,:) + [zeros(1,colShift) grandCDFves(1,1:end-colShift)]; % shift vestibular CDF base on visual-first SOA
     end
     
     grandRaceModel(grandRaceModel>1)=NaN; % cap values at NaN
     grandViolation(1,soai,:) = grandCDFs(1,soai+1,:)-grandRaceModel(1,soai,:);
     
     temp = grandViolation(1,soai,:);
-    grandRMV(1,soai) = sum(temp(temp>=0)) * 0.1; % times bin width(0.1ms)
+    grandRMV(1,soai) = sum(temp(temp>=0)) * 0.1; % multiply by bin width (0.1ms) to get area in ms
     
     for si = 1:size(S,1) % calculate upper bound race model for each subject
         if mySoa < 0 % vestibular
-            subjectRaceModel(si,soai,:) = subjectCDFves(si,:) + [zeros(1,colShift) subjectCDFvis(si,1:end-colShift)];
+            subjectRaceModel(si,soai,:) = subjectCDFves(si,:) + [zeros(1,colShift) subjectCDFvis(si,1:end-colShift)]; % shift visual CDF based on vestibular-first SOA
         elseif mySoa == 0 % sync
-            subjectRaceModel(si,soai,:) = subjectCDFves(si,:) + subjectCDFvis(si,:);
+            subjectRaceModel(si,soai,:) = subjectCDFves(si,:) + subjectCDFvis(si,:);  % do not shift CDFs
         elseif mySoa > 0 % visual
-            subjectRaceModel(si,soai,:) = subjectCDFvis(si,:) + [zeros(1,colShift) subjectCDFves(si,1:end-colShift)];
+            subjectRaceModel(si,soai,:) = subjectCDFvis(si,:) + [zeros(1,colShift) subjectCDFves(si,1:end-colShift)]; % shift vestibular CDF base on visual-first SOA
         end
     
         subjectRaceModel(subjectRaceModel>1)=NaN; % cap values at NaN
         subjectViolation(si,soai,:) = subjectCDFs(si,soai+1,:)-subjectRaceModel(si,soai,:);
     
         temp = subjectViolation(si,soai,:);
-        subjectRMV(si,soai) = sum(temp(temp>=0)) * 0.1; % times bin width (0.1ms)
-    end
-    
-    for gi = 1:size(groups,2) % calculate upper bound race model for each group
-        if mySoa < 0 % vestibular
-            groupRaceModel(gi,soai,:) = groupCDFves(gi,:) + [zeros(1,colShift) groupCDFvis(gi,1:end-colShift)];
-        elseif mySoa == 0 % sync
-            groupRaceModel(gi,soai,:) = groupCDFves(gi,:) + groupCDFvis(gi,:);
-        elseif mySoa > 0 % visual
-            groupRaceModel(gi,soai,:) = groupCDFvis(gi,:) + [zeros(1,colShift) groupCDFves(gi,1:end-colShift)];
-        end
-    
-        groupRaceModel(groupRaceModel>1)=NaN; % cap values at NaN
-        groupViolation(gi,soai,:) = groupCDFs(gi,soai+1,:)-groupRaceModel(gi,soai,:);
-        
-        temp = groupViolation(gi,soai,:);
-        groupRMV(gi,soai) = sum(temp(temp>=0)) * 0.1; % times bin width (0.1ms)
+        subjectRMV(si,soai) = sum(temp(temp>=0)) * 0.1; % multiply by bin width (0.1ms) to get area in ms
     end
 end
 
-%% Index of coactivation 
-%CRE = crossmodal response enhancement (Colonius and Diederich 2017)
+%% Calculate Multisensory Responsement Enhancement (MRE) scores 
 soaVes = [0 0 0 50 100];
 soaVis = [100 50 0 0 0];
 
-clearvars *CRE
-for soai = 1:5 % overall
-    grandMinUni = min(grandRT(1)+soaVes(soai),grandRT(7)+soaVis(soai));
-    grandCRE(soai) = ((grandMinUni-grandRT(soai+1))/grandMinUni)*100; % this is the same as taking the AUC!
+% RTstar is RT divided by Detection Rate (Rach et al. 2011)
+grandRTstar = grandRT ./ (1-grandMR); 
+subjectRTstar = subjectRT ./ (1-subjectMR);
+
+clearvars *MRE
+for soai = 1:5 % MRE overall
     
-    for si = 1:size(S,1) % by subject
-        subjectMinUni = min(subjectRT(si,1)+soaVes(soai),subjectRT(si,7)+soaVis(soai));
-        subjectCRE(si,soai) = ((subjectMinUni-subjectRT(si,soai+1))/subjectMinUni)*100;
-    end
+    grandMinUni = min(grandRTstar(1)+soaVes(soai),grandRTstar(7)+soaVis(soai));
+    grandMRE(soai) = ((grandMinUni-grandRTstar(soai+1))/grandMinUni)*100;
     
-    for gi = 1:size(groups,2) % by group
-        groupMinUni = min(groupRT(gi,1)+soaVes(soai),groupRT(gi,7)+soaVis(soai));
-        groupCRE(gi,soai) = ((groupMinUni-groupRT(gi,soai+1))/groupMinUni)*100;
+    for si = 1:size(S,1) % MRE by subject
+        subjectMinUni = min(subjectRTstar(si,1)+soaVes(soai),subjectRTstar(si,7)+soaVis(soai));
+        subjectMRE(si,soai) = ((subjectMinUni-subjectRTstar(si,soai+1))/subjectMinUni)*100;
     end
 end
 clearvars *MinUni
 
-clearvars -except S r4Data subject* g* timecourse
-save /home/darren/Documents/Projects/React4/Scripts/React4Variables
+%% Finally, make a csv file with 7 rows per subject (1 per condition)
+X.sID = repelem(S.sID,7);
+X.age = repelem(S.age,7);
+X.gender = repelem(S.gender,7);
+X.cond = repmat(["Ves","Com","Com","Com","Com","Com","Vis"]',size(S,1),1);
+X.soa = repmat([-Inf,-100,-50,0,50,100,Inf]',size(S,1),1);
+X.rt = reshape(subjectRT',[size(S,1)*7,1]);
+X.mr = reshape(subjectMR',[size(S,1)*7,1]);
+X.rmv = reshape([nan(size(S,1),1) subjectRMV nan(size(S,1),1)]',[size(S,1)*7,1]);
+X.mre = reshape([nan(size(S,1),1) subjectMRE nan(size(S,1),1)]',[size(S,1)*7,1]);
+X.gameHr = repelem(S.videoGameHours,7);
+X.driveHr = repelem(S.drivingHours,7);
+X.compHr = repelem(S.computerHours,7);
+csvData = struct2table(X);
+writetable(csvData, 'React4Data.csv')
+
+clearvars -except S *CDF* *RaceModel* grand* timecourse
+save CDFs
