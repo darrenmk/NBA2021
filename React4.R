@@ -1,9 +1,9 @@
-options(contrasts=c("contr.sum","contr.poly"))
+# options(contrasts=c("contr.sum","contr.poly"))
+# setwd("D:/Data/Documents/Scripts/NBA2021/") # for Darren only, comment out
 
 library(R.matlab)
 library(ggplot2)
 library(ggpubr)
-#library(ggcorrplot)
 library(nlme)
 
 ## Figure 2. Race Model Inequality per SOA
@@ -210,12 +210,12 @@ anova(lmm.rmv)
 ## Figure 4d: Age & MRE
 ageMRE <- ggplot(dataSoa, aes(x=age, y=mre, fill=soa)) +
   geom_smooth(aes(colour=soa),method=lm,se=0) +
-  geom_point(colour="black",aes(shape=cond,fill=soa),size=2) +
+  geom_point(colour="black",aes(shape=cond,fill=soa),size=4) +
   scale_colour_manual(values=c("#F0F4C3", "#C5E1A5", "#9CCC65", "#689F38", "#33691E")) +
   scale_shape_manual(values=21) +
   scale_fill_manual(values=c("#F0F4C3", "#C5E1A5", "#9CCC65", "#689F38", "#33691E")) +
   labs(x = "Age", y = "Multisensory Response Enhacement (%)", tag="D") +
-  theme_classic(base_size=15) +
+  theme_classic(base_size=17) +
   theme(legend.position="none",panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "grey30"))
 print(ageMRE)
 
