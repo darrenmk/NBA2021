@@ -1,10 +1,8 @@
-# options(contrasts=c("contr.sum","contr.poly"))
 # setwd("D:/Data/Documents/Scripts/NBA2021/") # for Darren only, comment out
 
 library(R.matlab)
 library(ggplot2)
 library(ggpubr)
-library(nlme)
 
 ## Figure 2. Race Model Inequality per SOA
 
@@ -140,15 +138,15 @@ grandPlot <- ggplot(grandData,aes(x=grandSoa,y=grandRT,fill=grandSoa)) +
         legend.key = element_rect(color="black",size=0.3,linetype="dotted"), text = element_text(size=32),axis.text = element_text(colour = "black"),legend.text=element_text(size=22, colour= "black"))
 print(grandPlot)
 
-# set variable classes in dataframe
+# set variable classes in data frame
 data$sID <- as.factor(data$sID)
 data$age<- as.integer(data$age)
 data$gender<- as.factor(data$gender)
 data$cond <- factor(data$cond,levels=c("Ves","Com","Vis"))
 data$soa <- factor(data$soa,levels=c("-Inf","-100","-50","0","50","100","Inf"))
-data$gameHr <- factor(data$gameHr,levels=c(1,2,3,4,5))
-data$driveHr <- factor(data$driveHr,levels=c(1,2,3,4,5))
-data$compHr <- factor(data$compHr,levels=c(1,2,3,4,5))
+data$gameHr <- as.integer(data$gameHr)
+data$driveHr <- as.integer(data$driveHr)
+data$compHr <- as.integer(data$compHr)
 
 
 ## Figure 4a: Age vs RT
@@ -164,10 +162,6 @@ ageRT <- ggplot(data, aes(x=age, y=rt, fill=soa)) +
   theme(legend.direction = "vertical", legend.position=c(0.5,0.85), legend.box="horizontal", text = element_text(size=32),  legend.background = element_rect(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),  axis.line = element_line(colour = "grey30"), axis.text = element_text(colour = "black"), legend.text=element_text(size=22, colour= "black"))
 print(ageRT)
 
-lmm.rt <- lme(rt ~ age*soa + gameHr + driveHr + compHr, random = ~1|sID, na.action = na.exclude, data = data)
-summary(lmm.rt)
-anova(lmm.rt)
-
 
 ## Figure 4b: Age & MR
 ageMR <- ggplot(data, aes(x=age, y=mr, fill=soa)) +
@@ -182,9 +176,6 @@ ageMR <- ggplot(data, aes(x=age, y=mr, fill=soa)) +
   theme(legend.position="none", panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"), text = element_text(size=32), axis.text = element_text(colour = "black"))
 print(ageMR)
 
-lmm.mr <- lme(mr ~ age*soa + gameHr + driveHr + compHr, random = ~1|sID, na.action = na.exclude, data = data)
-summary(lmm.mr)
-anova(lmm.mr)
 
 ## Figure 4c: Age & RMV
 # make a smaller dataframe with vest/vis-only trials exluded
@@ -203,10 +194,6 @@ ageRMV <- ggplot(dataSoa, aes(x=age, y=rmv, fill=soa)) +
   theme(legend.position="none",panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"), text = element_text(size=32), axis.text = element_text(colour = "black"))
 print(ageRMV)
 
-lmm.rmv <- lme(rmv ~ age*soa + gameHr + driveHr + compHr, random = ~1|sID, na.action = na.exclude, data = dataSoa)
-summary(lmm.rmv)
-anova(lmm.rmv)
-
 ## Figure 4d: Age & MRE
 ageMRE <- ggplot(dataSoa, aes(x=age, y=mre, fill=soa)) +
   geom_smooth(aes(colour=soa),method=lm,se=0) +
@@ -219,29 +206,5 @@ ageMRE <- ggplot(dataSoa, aes(x=age, y=mre, fill=soa)) +
   theme(legend.position="none",panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "grey30"))
 print(ageMRE)
 
-lmm.mre <- lme(mre ~ age*soa + gameHr + driveHr + compHr, random = ~1|sID, na.action = na.exclude, data = dataSoa)
-summary(lmm.mre)
-anova(lmm.mre)
-
 ## Figure 4, all 4 panels
 ggarrange(ageRT, ageMR, ageRMV, ageCRE, nrow = 2, ncol = 2)
-
-
-## Code for discussion about subjects w vestibular MR >= 80% having faster RT in SOA than vis
-highVMR <- rep(data$mr[data$soa==-Inf] >= 0.8, each=7) # get subjects with vestibular MR >= 80%
-myVis <- data$rt[highVMR & data$soa==Inf] # vis RTs for high VMR subjects
-mySoa <- t(matrix(data$rt[highVMR & data$soa!=-Inf & data$soa!=Inf],nrow=5)) # soa RTs for high VMR subjects
-myDiff <- mySoa - myVis # diff in SOA RT and vis RT, negative = soa RT is faster
-myNeg <- myDiff < 0 # check if negative
-
-## code to check whether young adults with >50% MR had diff demographic qualities
-data2 <- data[data$soa==-Inf,]
-data2$gameHr <- as.integer(data2$gameHr)
-data2$driveHr <- as.integer(data2$driveHr)
-data2$compHr <- as.integer(data2$compHr)
-
-yaAbove50 <- colMeans(data2[data2$age < 30 & data2$mr > 0.5,10:12])
-yaAbove50se <- apply(data2[data2$age < 30 & data2$mr > 0.5,10:12],2,sd)/sqrt(8)
-yaBelow50 <- colMeans(data2[data2$age < 30 & data2$mr <= 0.5,10:12])
-yaBelow50se <- apply(data2[data2$age < 30 & data2$mr <= 0.5,10:12],2,sd)/sqrt(25)
-
