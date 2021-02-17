@@ -16,6 +16,7 @@ visCDF <- as.matrix(grandCDFs[1,7,])
 
 # Import CDF data into a dataframe
 cdfData <- data.frame("timecourse" = t(CDFs[["timecourse"]]), "vesCDF" = vesCDF, "ves50CDF" = as.matrix(c(rep(0,500), vesCDF[1:29501,1])), "ves100CDF" = as.matrix(c(rep(0,1000), vesCDF[1:29001,1])), "visCDF" = visCDF, "vis50CDF" = as.matrix(c(rep(0,500), visCDF[1:29501,1])), "vis100CDF" = as.matrix(c(rep(0,1000), visCDF[1:29001,1])), "soa1CDF" = as.matrix(grandCDFs[1,2,]), "soa2CDF" = as.matrix(grandCDFs[1,3,]), "soa3CDF" = as.matrix(grandCDFs[1,4,]), "soa4CDF" = as.matrix(grandCDFs[1,5,]), "soa5CDF" = as.matrix(grandCDFs[1,6,]), "race1CDF" = as.matrix(grandRaceModel[1,1,]), "race2CDF" = as.matrix(grandRaceModel[1,2,]), "race3CDF" = as.matrix(grandRaceModel[1,3,]), "race4CDF" = as.matrix(grandRaceModel[1,4,]), "race5CDF" = as.matrix(grandRaceModel[1,5,]))
+
 ## Figure 2a: -100 ms SOA
 cdfPlot1 <- ggplot(cdfData, aes(x=timecourse)) +
   geom_line(aes(y=vesCDF,group="A",colour="A")) +

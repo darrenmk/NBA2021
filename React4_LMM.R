@@ -23,6 +23,7 @@ lmm.mr <- lme(mr ~ age*soa + gameHr + driveHr + compHr, random = ~1|sID, na.acti
 summary(lmm.mr)
 anova(lmm.mr)
 
+
 ## Stats for Figure 5
 dataSoa <- data[(data$soa != -Inf) & (data$soa != Inf),]
 dataSoa$cond <- factor(dataSoa$cond,levels=c("Com"))
@@ -32,10 +33,14 @@ lmm.rmv <- lme(rmv ~ age*soa + gameHr + driveHr + compHr, random = ~1|sID, na.ac
 summary(lmm.rmv)
 anova(lmm.rmv)
 
+# just RMV and age
+lmm.rmv2 <- lme(rmv ~ age + gameHr + driveHr + compHr, random = ~1|sID, na.action = na.exclude, data = dataSoa)
+summary(lmm.rmv2)
+anova(lmm.rmv2)
+
 lmm.mre <- lme(mre ~ age*soa + gameHr + driveHr + compHr, random = ~1|sID, na.action = na.exclude, data = dataSoa)
 summary(lmm.mre)
 anova(lmm.mre)
-
 
 
 
