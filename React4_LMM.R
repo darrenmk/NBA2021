@@ -23,7 +23,7 @@ summary(lmm.rt)
 anova(lmm.rt)
 lmm.rt2 <- lmer(rt ~ age + gameHr + driveHr + compHr + (1|sID), data=data)
 summary(lmm.rt2)
-# sim.rt <- powerSim(lmm.rt2,nsim=1000,seed=1995)
+# sim.rt <- powerSim(lmm.rt2,nsim=1000,seed=1995) # commented out because it takes a while to run, seed added for reproducibility
 
 lmm.mr <- lme(mr ~ age*soa + gameHr + driveHr + compHr, random = ~1|sID, na.action = na.exclude, data = data)
 summary(lmm.mr)
@@ -35,18 +35,17 @@ dataSoa <- data[(data$soa != -Inf) & (data$soa != Inf),]
 dataSoa$cond <- factor(dataSoa$cond,levels=c("Com"))
 dataSoa$soa <- factor(dataSoa$soa,levels=c("-100","-50","0","50","100"))
 
-lmm.rmv <- lme(rmv ~ age*soa + gameHr + driveHr + compHr, random = ~1|sID, na.action = na.exclude, data = dataSoa)
-summary(lmm.rmv)
-anova(lmm.rmv)
-lmm.rmv2 <- lme(rmv ~ age + gameHr + driveHr + compHr, random=~1|sID, data=dataSoa)
-summary(lmm.rmv2)
-lmm.rmv3 <- lmer(rmv ~ age + gameHr + driveHr + compHr + (1|sID), data=dataSoa)
-summary(lmm.rmv3)
-# sim.rmv <- powerSim(lmm.rmv3,nsim=1000,seed=1995)
+lmm.va <- lme(va ~ age*soa + gameHr + driveHr + compHr, random = ~1|sID, na.action = na.exclude, data = dataSoa)
+summary(lmm.va)
+anova(lmm.va)
+summary(lme(va ~ age + gameHr + driveHr + compHr, random=~1|sID, data=dataSoa)) # just to get p-values
+lmm.va2 <- lmer(va ~ age + gameHr + driveHr + compHr + (1|sID), data=dataSoa)
+summary(lmm.va2)
+# sim.va <- powerSim(lmm.va2,nsim=1000,seed=1995) # commented out because it takes a while to run, seed added for reproducibility
 
-lmm.mre <- lme(mre ~ age*soa + gameHr + driveHr + compHr, random = ~1|sID, na.action = na.exclude, data = dataSoa)
-summary(lmm.mre)
-anova(lmm.mre)
+lmm.me <- lme(me ~ age*soa + gameHr + driveHr + compHr, random = ~1|sID, na.action = na.exclude, data = dataSoa)
+summary(lmm.me)
+anova(lmm.me)
 
 
 
@@ -57,11 +56,11 @@ anova(comp.rt)
 comp.mr <- lme(mr ~ age+compensation, random = ~1|sID, na.action = na.exclude, data = data)
 anova(comp.mr)
 
-comp.rmv <- lme(rmv ~ age+compensation, random = ~1|sID, na.action = na.exclude, data = dataSoa)
-anova(comp.rmv)
+comp.va <- lme(va ~ age+compensation, random = ~1|sID, na.action = na.exclude, data = dataSoa)
+anova(comp.va)
 
-comp.mre <- lme(mre ~ age+compensation, random = ~1|sID, na.action = na.exclude, data = dataSoa)
-anova(comp.mre)
+comp.me <- lme(me ~ age+compensation, random = ~1|sID, na.action = na.exclude, data = dataSoa)
+anova(comp.me)
 
 
 # Control analysis 3.3.2. High miss rate in vestibular-only condition (>= 80%)

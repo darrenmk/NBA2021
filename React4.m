@@ -133,7 +133,7 @@ subjectCDFvis = subjectCDFs(:,7,:);
 
 soas = [-100 -50 0 50 100];
 
-%% Calculate the Race Model Inequality, Race Model Violation Area, and scalar RMV score
+%% Calculate the Race Model Inequality, Violation Area, and scalar VA score
 for soai = 1:5 % calculate upper bound of race model for each SOA
 
     mySoa = soas(soai);
@@ -151,7 +151,7 @@ for soai = 1:5 % calculate upper bound of race model for each SOA
     grandViolation(1,soai,:) = grandCDFs(1,soai+1,:)-grandRaceModel(1,soai,:);
     
     temp = grandViolation(1,soai,:);
-    grandRMV(1,soai) = sum(temp(temp>=0)) * 0.1; % multiply by bin width (0.1ms) to get area in ms
+    grandVA(1,soai) = sum(temp(temp>=0)) * 0.1; % multiply by bin width (0.1ms) to get area in ms
     
     for si = 1:size(S,1) % calculate upper bound race model for each subject
         if mySoa < 0 % vestibular
@@ -166,11 +166,11 @@ for soai = 1:5 % calculate upper bound of race model for each SOA
         subjectViolation(si,soai,:) = subjectCDFs(si,soai+1,:)-subjectRaceModel(si,soai,:);
     
         temp = subjectViolation(si,soai,:);
-        subjectRMV(si,soai) = sum(temp(temp>=0)) * 0.1; % multiply by bin width (0.1ms) to get area in ms
+        subjectVA(si,soai) = sum(temp(temp>=0)) * 0.1; % multiply by bin width (0.1ms) to get area in ms
     end
 end
 
-%% Calculate Multisensory Responsement Enhancement (MRE) scores 
+%% Calculate Multisensory Enhancement (ME) scores 
 soaVes = [0 0 0 50 100];
 soaVis = [100 50 0 0 0];
 
@@ -178,15 +178,15 @@ soaVis = [100 50 0 0 0];
 grandRTstar = grandRT ./ (1-grandMR); 
 subjectRTstar = subjectRT ./ (1-subjectMR);
 
-clearvars *MRE
-for soai = 1:5 % MRE overall
+clearvars *ME
+for soai = 1:5 % ME overall
     
     grandMinUni = min(grandRTstar(1)+soaVes(soai),grandRTstar(7)+soaVis(soai));
-    grandMRE(soai) = ((grandMinUni-grandRTstar(soai+1))/grandMinUni)*100;
+    grandME(soai) = ((grandMinUni-grandRTstar(soai+1))/grandMinUni)*100;
     
-    for si = 1:size(S,1) % MRE by subject
+    for si = 1:size(S,1) % ME by subject
         subjectMinUni = min(subjectRTstar(si,1)+soaVes(soai),subjectRTstar(si,7)+soaVis(soai));
-        subjectMRE(si,soai) = ((subjectMinUni-subjectRTstar(si,soai+1))/subjectMinUni)*100;
+        subjectME(si,soai) = ((subjectMinUni-subjectRTstar(si,soai+1))/subjectMinUni)*100;
     end
 end
 clearvars *MinUni
@@ -199,8 +199,8 @@ X.cond = repmat(["Ves","Com","Com","Com","Com","Com","Vis"]',size(S,1),1);
 X.soa = repmat([-Inf,-100,-50,0,50,100,Inf]',size(S,1),1);
 X.rt = reshape(subjectRT',[size(S,1)*7,1]);
 X.mr = reshape(subjectMR',[size(S,1)*7,1]) * 100; % convert to percentage
-X.rmv = reshape([nan(size(S,1),1) subjectRMV nan(size(S,1),1)]',[size(S,1)*7,1]);
-X.mre = reshape([nan(size(S,1),1) subjectMRE nan(size(S,1),1)]',[size(S,1)*7,1]);
+X.va = reshape([nan(size(S,1),1) subjectVA nan(size(S,1),1)]',[size(S,1)*7,1]);
+X.me = reshape([nan(size(S,1),1) subjectME nan(size(S,1),1)]',[size(S,1)*7,1]);
 X.gameHr = repelem(S.videoGameHours,7);
 X.driveHr = repelem(S.drivingHours,7);
 X.compHr = repelem(S.computerHours,7);
