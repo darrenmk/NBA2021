@@ -198,12 +198,13 @@ X.gender = repelem(S.gender,7);
 X.cond = repmat(["Ves","Com","Com","Com","Com","Com","Vis"]',size(S,1),1);
 X.soa = repmat([-Inf,-100,-50,0,50,100,Inf]',size(S,1),1);
 X.rt = reshape(subjectRT',[size(S,1)*7,1]);
-X.mr = reshape(subjectMR',[size(S,1)*7,1]);
+X.mr = reshape(subjectMR',[size(S,1)*7,1]) * 100; % convert to percentage
 X.rmv = reshape([nan(size(S,1),1) subjectRMV nan(size(S,1),1)]',[size(S,1)*7,1]);
 X.mre = reshape([nan(size(S,1),1) subjectMRE nan(size(S,1),1)]',[size(S,1)*7,1]);
 X.gameHr = repelem(S.videoGameHours,7);
 X.driveHr = repelem(S.drivingHours,7);
 X.compHr = repelem(S.computerHours,7);
+X.compensation =  repelem(S.compensation,7);
 csvData = struct2table(X);
 writetable(csvData, 'React4Data.csv')
 
