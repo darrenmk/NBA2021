@@ -31,7 +31,7 @@ cdfPlot1 <- ggplot(cdfData, aes(x=timecourse)) +
   scale_x_continuous(breaks=seq(0,2000,by=200), limits=c(0,2000)) +
   theme_classic() +
   theme(legend.position="none")
-#print(cdfPlot1)
+print(cdfPlot1)
 
 ## Figure 2b: -50 ms SOA
 cdfPlot2 <- ggplot(cdfData, aes(x=timecourse)) +
@@ -63,7 +63,7 @@ cdfPlot3 <- ggplot(cdfData, aes(x=timecourse)) +
   scale_x_continuous(breaks=seq(0,2000,by=200), limits=c(0,2000)) +
   theme_classic() +
   theme(legend.position=c(0.9,0.5))
-#print(cdfPlot3)
+print(cdfPlot3)
 
 ## Figure 2d: 50 ms SOA
 cdfPlot4 <- ggplot(cdfData, aes(x=timecourse)) +
@@ -97,11 +97,7 @@ cdfPlot5 <- ggplot(cdfData, aes(x=timecourse)) +
   theme(legend.position="none")
 print(cdfPlot5)
 
-## Figure 2 with 3 panels: -100, 0, and 100 ms SOAs
-ggarrange(cdfPlot1, cdfPlot3, cdfPlot5, nrow = 3, ncol = 1)
-## Figure 2 with 5 panels: -100, -50, 0, 50, and 100 ms SOAs
-#ggarrange(cdfPlot1, cdfPlot2, cdfPlot3, cdfPlot4, cdfPlot5, nrow = 5, ncol = 1)
-
+ggarrange(cdfPlot1, cdfPlot3, cdfPlot5)
 
 ## Figure 3. Grand RT and MR
 data <- read.csv("React4Data.csv") # Load React4Data.csv (created by Matlab script: React4.m, bad subjects already removed)
