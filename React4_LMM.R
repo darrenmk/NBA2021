@@ -1,8 +1,7 @@
-# setwd("D:/Data/Documents/Scripts/NBA2021/") # for Darren only, comment out
+# setwd("C:/Users/darre/OneDrive/Documents/Scripts/NBA2021") # for Darren only, comment out
 
 library(nlme)
 library(lme4)
-library(simr)
 
 data <- read.csv("React4Data.csv") # Load React4Data.csv (created by Matlab script: React4.m, bad subjects already removed)
 n <- dim(data)[1]/7
@@ -38,6 +37,8 @@ anova(lmm.va)
 summary(lme(va ~ age + gameHr + driveHr + compHr, random = ~1|sID, data = dataSoa)) # just to get p-values
 lmm.va2 <- lmer(va ~ age + gameHr + driveHr + compHr + (1|sID), data = dataSoa)
 summary(lmm.va2)
+sdxy <- c(sd(dataSoa$age),sd(dataSoa$va)) # for G*Power analysis
+
 # sim.va <- powerSim(lmm.va2,nsim=1000,seed=1995) # commented out because it takes a while to run, seed added for reproducibility
 
 lmm.me <- lme(me ~ age*soa + gameHr + driveHr + compHr, random = ~1|sID, na.action = na.exclude, data = dataSoa)
